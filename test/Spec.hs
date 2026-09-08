@@ -6,9 +6,11 @@ module Main (main) where
 import Cocoa (Mark (..), toPlist, toTrie)
 import Data.Char (isSpace)
 import Data.Tree (Tree (..))
-import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import qualified Data.Text as T
+import qualified Data.Yaml as Y
 import Types (CompMap (..))
+import XComp (toXCompose)
 
 cm :: CompMap
 cm = CompMap [("aa", "foo"), ("ab", "bar"), ("cb", "baz")]
@@ -75,6 +77,35 @@ main = do
   example <- TIO.readFile "example.dict"
   assertEq "example.dict tokens" (tokens example)
     (tokens (toPlist "§" (toTrie (CompMap allKeys))))
+
+  -- XCompose: small mapping, one line per binding, no nesting
+  assertEq "xcompose output"
+    (T.unlines
+      [ "<a> <a> : \"foo\""
+      , "<a> <b> : \"bar\""
+      , "<c> <b> : \"baz\"" ])
+    (toXCompose cm)
+
+  -- XCompose: symbol triggers map to keysym names, space in the middle works,
+  -- non-ASCII triggers become zero-padded Unicode keysyms
+  assertEq "xcompose symbols"
+    (T.unlines
+      [ "<a> <grave> : \"ᴀ\""
+      , "<exclam> <exclam> : \"‼\""
+      , "<bracketleft> <space> <bracketright> : \"☐\""
+      , "<underscore> <1> : \"₁\""
+      , "<period> <period> : \"…\""
+      , "<2> <period> : \"‥\""
+       , "<U2026> <a> : \"x\""
+       , "<U00D7> <b> : \"z\""
+       , "<h> <u> <g> : \"🫂\"" ])
+    (toXCompose (CompMap [("a`", "ᴀ"), ("!!", "‼"), ("[ ]", "☐"), ("_1", "₁"),
+                          ("..", "…"), ("2.", "‥"), ("…a", "x"), ("×b", "z"), ("hug", "🫂")]))
+
+  -- full example.yaml, compared against example.compose line by line
+  ex <- Y.decodeFileThrow "example.yaml" :: IO CompMap
+  exampleX <- TIO.readFile "example.compose"
+  assertEq "example.compose lines" (T.lines exampleX) (T.lines (toXCompose ex))
 
 assertEq :: (Show a, Eq a) => String -> a -> a -> IO ()
 assertEq name expected actual
