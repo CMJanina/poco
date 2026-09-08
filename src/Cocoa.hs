@@ -10,7 +10,7 @@ import Data.List (nub, partition)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Tree (Tree)
-import Types (CompMap (..))
+import Types (CompMap (..), quote)
 
 data Mark = Root | Edge Char | Value Text deriving (Show, Eq)
 
@@ -44,10 +44,3 @@ alg k (NodeF m cs) = case m of
 
 eq :: Text -> Text -> Text
 eq k rest = quote k <> " = " <> rest
-
-quote :: Text -> Text
-quote s = "\"" <> T.concatMap esc s <> "\""
-  where
-    esc '"' = "\\\""
-    esc '\\' = "\\\\"
-    esc c = T.singleton c
