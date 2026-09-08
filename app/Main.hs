@@ -8,12 +8,13 @@ import qualified Data.Text as T
 import qualified Data.Yaml as Y
 import Options.Applicative
 import Types
+import qualified XComp as X
 
 data Target = Cocoa | XComp deriving (Show, Read)
 
 toOutput :: Target -> CompMap -> T.Text
 toOutput Cocoa = C.toPlist "§" . C.toTrie
-toOutput XComp = undefined
+toOutput XComp = X.toXCompose
 
 data CliArgs = CliArgs {target :: Target, infile :: FilePath}
 

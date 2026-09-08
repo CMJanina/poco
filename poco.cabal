@@ -26,6 +26,7 @@ library
   exposed-modules:
       Cocoa
       Types
+      XComp
   other-modules:
       Paths_poco
   autogen-modules:
