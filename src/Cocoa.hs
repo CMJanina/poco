@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- we make the untested assumption that no binding is the prefix of another binding
--- FIXME: there should be a test for this somewhere else
+-- YAML parsing checks that no binding is the prefix of another binding.
 module Cocoa (Mark (..), toTrie, toPlist, alg, coalg) where
 
 import Data.Functor.Base (TreeF (NodeF))

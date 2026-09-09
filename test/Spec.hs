@@ -17,6 +17,15 @@ cm = CompMap [("aa", "foo"), ("ab", "bar"), ("cb", "baz")]
 
 main :: IO ()
 main = do
+  mapM_ (\input -> case Y.decodeEither' input :: Either Y.ParseException CompMap of
+    Left err -> assertEq "prefix conflict reports both sequences" True
+      (T.pack "\"a\" is a prefix of \"ab\"" `T.isInfixOf` T.pack (Y.prettyPrintParseException err))
+    Right result -> error ("accepted prefix conflict: " ++ show result))
+    ["a: foo\nab: bar\n", "ab: bar\na: foo\n"]
+  case Y.decodeEither' "abc: foo\nabd: bar\n" :: Either Y.ParseException CompMap of
+    Left err -> error (Y.prettyPrintParseException err)
+    Right (CompMap ps) -> assertEq "shared prefix accepted" 2 (length ps)
+
   let trie = toTrie cm
   assertEq "root label" Root (rootLabel trie)
   assertEq "root has 2 branches" 2 (length (subForest trie))
@@ -45,8 +54,7 @@ main = do
   assertEq "empty root label" Root (rootLabel emptyTrie)
   assertEq "empty has no children" [] (subForest emptyTrie)
 
-  -- a key that is a prefix of another: the value sits alongside deeper
-  -- branches
+  -- keys sharing a prefix branch at the first differing character
   let deep = toTrie (CompMap [("abc", "x"), ("abd", "y")])
   let a2 = head (subForest deep)        -- Edge 'a'
       b2 = head (subForest a2)          -- Edge 'b'

@@ -63,8 +63,8 @@ It currently differs from `poco -t Cocoa` output in sorting.
 
 ## Notes
 
-- The current implementation assumes sequence is a prefix of another; but the
-  code doesn't test for this yet.
+- No trigger sequence may be a prefix of another. Both targets reject inputs
+  such as `"a"` and `"ab"`, but allow shared prefixes such as `"abc"` and `"abd"`.
 - XCompose sequences match keysyms produced by the active keyboard layout.
   They do not require US key positions, but the layout must provide the expected
   symbols. Dead keys such as `dead_grave` do not match `grave`, and generated
