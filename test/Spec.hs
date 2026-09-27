@@ -8,7 +8,7 @@
 module Main (main) where
 
 import Cocoa (toPlist, toTrie)
-import Data.Char (chr, isHexDigit, isSpace)
+import Data.Char (chr, isHexDigit)
 import Data.List (isInfixOf, sort, sortOn)
 import Data.Text (Text)
 import qualified Data.ByteString as BS
@@ -42,9 +42,6 @@ assertEq name expected actual
   | actual == expected = return ()
   | otherwise = error (name ++ "\nexpected:\n" ++ show expected
                     ++ "\ngot:\n" ++ show actual)
-
-tokens :: T.Text -> T.Text
-tokens = T.filter (not . isSpace)
 
 -- YAML parsing ----------------------------------------------------------------
 
@@ -121,22 +118,14 @@ goldenSpec = do
     (toXCompose (CompMap [("a`", "ᴀ"), ("!!", "‼"), ("[ ]", "☐"), ("_1", "₁"),
                           ("..", "…"), ("2.", "‥"), ("…a", "x"), ("×b", "z"), ("hug", "🫂")]))
 
-  -- example.dict differs from poco's output only in sorting; compare
-  -- whitespace-insensitively
+  ex@(CompMap ps) <- Y.decodeFileThrow "example.yaml" :: IO CompMap
   example <- TIO.readFile "example.dict"
-  assertEq "example.dict tokens" (tokens example)
-    (tokens (toPlist "§" (toTrie (CompMap exampleKeys))))
-  ex <- Y.decodeFileThrow "example.yaml" :: IO CompMap
+  let expected = Just ("§", sort ps)
+      bindings = fmap (\(root, entries) -> (root, sort entries)) . parsePlist
+  assertEq "example.dict bindings" expected (bindings example)
+  assertEq "generated Cocoa bindings" expected (bindings (toPlist "§" (toTrie ex)))
   exampleX <- TIO.readFile "example.compose"
   assertEq "example.compose lines" (T.lines exampleX) (T.lines (toXCompose ex))
-  where
-    exampleKeys =
-      [ ("hug", "🫂"), ("pnt", "👉👈"), ("pls", "🥺"), ("cdot", "⋅")
-      , ("chk", "☑"), ("xx", "×"), ("eu", "€"), ("SS", "ẞ"), ("ss", "ß")
-      , ("Ue", "Ü"), ("Oe", "Ö"), ("Ae", "Ä"), ("ue", "ü"), ("oe", "ö")
-      , ("ae", "ä"), ("a`", "ᴀ"), ("dgc", "℃"), ("degc", "℃")
-      , ("degC", "℃"), ("b`", "ʙ"), ("[x]", "☒"), ("[ ]", "☐")
-      , ("_2", "₂"), ("_1", "₁"), ("2.", "‥"), ("..", "…") ]
 
 pQuoted :: Text -> Maybe (Text, Text)
 pQuoted t0 = case T.uncons (T.stripStart t0) of
