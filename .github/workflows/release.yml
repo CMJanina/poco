@@ -1,0 +1,84 @@
+name: Build and release
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-26
+            asset: poco-macos-arm64
+          - runner: macos-26-intel
+            asset: poco-macos-x86_64
+          - runner: ubuntu-26.04-arm
+            asset: poco-linux-arm64
+          - runner: ubuntu-26.04
+            asset: poco-linux-x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
+        if: runner.os == 'macOS'
+        with:
+          enable-stack: true
+          stack-no-global: true
+      - name: Build and test macOS
+        if: runner.os == 'macOS'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '15.0'
+        run: stack build --test --copy-bins --local-bin-path dist
+      - name: Build and test static Linux
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          # Stack has no musl ARM64 GHC entry, so use Alpine's compiler on both architectures.
+          docker run --rm -v "$PWD:/work" -w /work \
+            alpine:3.24 sh -ec '
+              apk add --no-cache build-base ca-certificates ghc gmp-static stack zlib-dev zlib-static
+              stack build --test --copy-bins --local-bin-path /work/dist \
+                --system-ghc --no-install-ghc --ghc-options="-optl=-static"
+            '
+          file dist/poco-exe | grep 'statically linked'
+      - name: Package binary
+        run: |
+          mv dist/poco-exe dist/poco
+          dist/poco --help
+          tar -czf "${{ matrix.asset }}.tar.gz" -C dist poco
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: poco-*
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          sha256sum poco-linux-{arm64,x86_64}.tar.gz poco-macos-{arm64,x86_64}.tar.gz > SHA256SUMS
+          gh release create "$TAG" poco-*.tar.gz SHA256SUMS \
+            --verify-tag --title "$TAG" --notes-file - <<'EOF'
+          Download the archive for your platform and SHA256SUMS. Verify before extracting, replacing the filename below with your download:
+
+          ```sh
+          grep ' poco-linux-x86_64.tar.gz$' SHA256SUMS | shasum -a 256 --check -
+          ```
+
+          Each archive contains the poco executable.
+          EOF
