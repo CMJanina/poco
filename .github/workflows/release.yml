@@ -39,7 +39,7 @@ jobs:
           docker run --rm -v "$PWD:/work" -w /work \
             alpine:3.24 sh -ec '
               apk add --no-cache build-base ca-certificates ghc gmp-static stack zlib-dev zlib-static
-              stack build --test --copy-bins --local-bin-path /work/dist \
+              stack --allow-different-user build --test --copy-bins --local-bin-path /work/dist \
                 --system-ghc --no-install-ghc --ghc-options="-optl=-static"
             '
           file dist/poco-exe | grep 'statically linked'
