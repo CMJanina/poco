@@ -21,6 +21,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
+      - name: Select macOS Command Line Tools
+        if: runner.os == 'macOS'
+        # Keep the linker compatible with the Command Line Tools SDK used by GHC.
+        run: sudo xcode-select --switch /Library/Developer/CommandLineTools
       - uses: haskell-actions/setup@v2
         if: runner.os == 'macOS'
         with:
