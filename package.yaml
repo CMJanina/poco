@@ -34,6 +34,12 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 
+flags:
+  static:
+    description: Build fully static executables
+    manual: true
+    default: false
+
 library:
   source-dirs: src
 
@@ -47,6 +53,9 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - poco
+    when:
+      condition: flag(static)
+      ld-options: -static
 
 tests:
   poco-test:
@@ -58,3 +67,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - poco
+    when:
+      condition: flag(static)
+      ld-options: -static

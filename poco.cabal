@@ -22,6 +22,11 @@ source-repository head
   type: git
   location: https://github.com/pixelcmtd/poco
 
+flag static
+  description: Build fully static executables
+  manual: True
+  default: False
+
 library
   exposed-modules:
       Cocoa
@@ -63,6 +68,8 @@ executable poco-exe
     , text ==2.1.*
     , yaml ==0.11.*
   default-language: Haskell2010
+  if flag(static)
+    ld-options: -static
 
 test-suite poco-test
   type: exitcode-stdio-1.0
@@ -84,3 +91,5 @@ test-suite poco-test
     , text ==2.1.*
     , yaml ==0.11.*
   default-language: Haskell2010
+  if flag(static)
+    ld-options: -static

@@ -8,6 +8,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: macos-26
@@ -44,7 +45,7 @@ jobs:
             alpine:3.24 sh -ec '
               apk add --no-cache build-base ca-certificates ghc gmp-static stack zlib-dev zlib-static
               stack --allow-different-user build --test --copy-bins --local-bin-path /work/dist \
-                --system-ghc --no-install-ghc --ghc-options="-optl=-static"
+                --system-ghc --no-install-ghc --flag poco:static
             '
           file dist/poco-exe | grep 'statically linked'
       - name: Package binary
